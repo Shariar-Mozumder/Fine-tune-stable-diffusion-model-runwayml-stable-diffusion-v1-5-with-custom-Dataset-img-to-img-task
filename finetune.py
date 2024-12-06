@@ -8,7 +8,7 @@ from tqdm import tqdm
 import os
 import numpy as np
 
-# Define Custom Dataset
+
 class CustomDataset(Dataset):
     def __init__(self, data, tokenizer, image_size=512):
         self.data = data
@@ -24,12 +24,13 @@ class CustomDataset(Dataset):
         image_path = sample["image"]
         text = sample["text"]
 
-        # Load image
+
         image = Image.open(image_path).convert("RGB")
         image = self.transform(image)
+        # image = torch.tensor(image).permute(2, 0, 1) / 255.0  # Normalize to [0, 1]
         image = torch.tensor(np.array(image)).permute(2, 0, 1).float() / 255.0  # Normalize to [0, 1]
 
-        # Tokenize the text
+
         inputs = self.tokenizer(text, return_tensors="pt", padding="max_length", truncation=True, max_length=77)
 
         return {
@@ -37,8 +38,11 @@ class CustomDataset(Dataset):
             "input_ids": inputs["input_ids"].squeeze(),
         }
 
-# Load Components
+
 model_id = "runwayml/stable-diffusion-v1-5"
+
+# from diffusers import DDPMScheduler
+# scheduler = DDPMScheduler.from_pretrained(model_id)
 
 vae = AutoencoderKL.from_pretrained(model_id, subfolder="vae")
 unet = UNet2DConditionModel.from_pretrained(model_id, subfolder="unet")
@@ -46,7 +50,7 @@ tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
 text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14")
 scheduler = DDPMScheduler.from_pretrained(model_id, subfolder="scheduler")
 
-# Dummy Dataset
+# Dummy fasion Dataset
 dummy_data = [
     {"image": "sample_imges/redshirt.jpg", "text": "A red shirt on a hanger"},
     {"image": "sample_imges/jeans.jpg", "text": "A pair of blue jeans on a rack"},
@@ -56,10 +60,10 @@ dummy_data = [
 dataset = CustomDataset(dummy_data, tokenizer)
 dataloader = DataLoader(dataset, batch_size=1, shuffle=True)
 
-# Optimizer
+
 optimizer = torch.optim.AdamW(unet.parameters(), lr=1e-5)
 
-# Training Loop
+
 device = "cuda" if torch.cuda.is_available() else "cpu"
 vae.to(device)
 unet.to(device)
@@ -74,7 +78,7 @@ for epoch in range(num_epochs):
         pixel_values = batch["pixel_values"].to(device)
         input_ids = batch["input_ids"].to(device)
 
-        # Encode text
+
         text_embeddings = text_encoder(input_ids)["last_hidden_state"]
 
         # Encode images into latents
@@ -92,22 +96,22 @@ for epoch in range(num_epochs):
         noise = torch.randn_like(latents)
         noisy_latents = scheduler.add_noise(latents, noise, timesteps)
 
-        # Predict noise with UNet
+        # pred_noise = unet(noisy_latents, text_embeddings).sample
+        # pred_noise = unet(noisy_latents, encoder_hidden_states=text_embeddings).sample
         pred_noise = unet(
             sample=noisy_latents, 
             timestep=timesteps, 
             encoder_hidden_states=text_embeddings
         ).sample
 
-        # Compute loss (MSE loss)
         loss = F.mse_loss(pred_noise, noise)
 
-        # Backward pass
+
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 
     print(f"Epoch {epoch+1} finished. Loss: {loss.item()}")
 
-# Save Fine-tuned UNet
+
 unet.save_pretrained("finetuned_unet")

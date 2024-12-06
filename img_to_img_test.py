@@ -12,17 +12,17 @@ text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14")
 tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
 scheduler = DDPMScheduler.from_pretrained(model_id, subfolder="scheduler")
 
-# Move to Device
+
 device = "cuda" if torch.cuda.is_available() else "cpu"
 vae.to(device)
 unet.to(device)
 text_encoder.to(device)
 
-# Define a Text Prompt and Input Image
+
 prompt = "A colorful artistic version of this jacket"
 input_image_path = "test_images/jack.jpg"
 
-# Load and Preprocess Input Image
+
 input_image = Image.open(input_image_path).convert("RGB").resize((512, 512))
 input_image = torch.tensor(np.array(input_image)).permute(2, 0, 1).float() / 255.0  # Normalize to [0, 1]
 input_image = input_image.unsqueeze(0).to(device)  # Add batch dimension
@@ -32,7 +32,7 @@ with torch.no_grad():
     latents = vae.encode(input_image).latent_dist.sample()
 latents = latents * 0.18215  # Scaling factor
 
-# Encode Text Prompt
+
 inputs = tokenizer(prompt, return_tensors="pt", padding="max_length", truncation=True, max_length=77)
 input_ids = inputs["input_ids"].to(device)
 with torch.no_grad():
