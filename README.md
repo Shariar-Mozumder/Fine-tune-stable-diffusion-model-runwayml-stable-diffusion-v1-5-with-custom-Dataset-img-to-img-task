@@ -11,7 +11,7 @@ This project is a finetune project of a stable diffusion model (runwayml\stable-
 - `test_images`: This folder is for test the images with prompt
 - `finetune.py`: This file used for finetuning
 - `img_to_img_test.py`: This file used for test the model.
-- `[Finetuned Model](https://drive.google.com/drive/folders/1R35fEcWAjjsgha5rFuFWk6v9w08x3DUg?usp=sharing)`: This is the finetuned model link. (I could not upload it in git because of it's size (3.20 GB).
+- [Finetuned Model](https://drive.google.com/drive/folders/1R35fEcWAjjsgha5rFuFWk6v9w08x3DUg?usp=sharing): This is the finetuned model link. (I could not upload it in git because of it's size (3.20 GB).
 
 ## How to Run
 
